@@ -21,7 +21,7 @@ This document captures the runtime architecture and deployment design for the .N
 ## Component Responsibilities
 
 | Component | Responsibility | Inbound traffic | Outbound traffic |
-|---|---|---|---|
+|-----------|----------------|-----------------|------------------|
 | `MyChat` | Browser UI for chat and session operations | End users | `McpHost` HTTP API |
 | `McpHost` | Session management, prompt rendering, tool orchestration, LLM integration | `MyChat` and API clients | OpenAI/Gemini, `UwMcp`, `DevOpsMcp` |
 | `UwMcp` | Underwriting MCP tool server | `McpHost` via MCP over HTTP | UW/APIM APIs |

@@ -1,5 +1,3 @@
-using McpGateway;
-
 namespace McpHost;
 
 public sealed class AppConfig

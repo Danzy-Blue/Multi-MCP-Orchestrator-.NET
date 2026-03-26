@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json.Nodes;
-using McpGateway;
+using McpHost;
 
 namespace McpHost.Tests;
 
@@ -85,18 +85,18 @@ internal sealed class StubLlmService : ILlmService
     public string ExtractTextResponse(JsonObject response) => response["reply"]?.GetValue<string>() ?? string.Empty;
 }
 
-internal sealed class FakeMcpConnectionFactory(Func<ServerConfig, IMcpConnection> factory) : IMcpConnectionFactory
+internal sealed class FakeMcpConnectionFactory(Func<ServerConfig, IMcpServerConnection> factory) : IMcpServerConnectionFactory
 {
-    private readonly Func<ServerConfig, IMcpConnection> _factory = factory;
+    private readonly Func<ServerConfig, IMcpServerConnection> _factory = factory;
 
-    public IMcpConnection Create(ServerConfig config) => _factory(config);
+    public IMcpServerConnection Create(ServerConfig config) => _factory(config);
 }
 
 internal sealed class FakeMcpConnection(
     IReadOnlyList<RegisteredTool>? tools = null,
     IReadOnlyList<RegisteredPrompt>? prompts = null,
     Func<string, JsonObject, CancellationToken, Task<string>>? callToolAsync = null,
-    Func<string, JsonObject, CancellationToken, Task<RenderedPrompt>>? getPromptAsync = null) : IMcpConnection
+    Func<string, JsonObject, CancellationToken, Task<RenderedPrompt>>? getPromptAsync = null) : IMcpServerConnection
 {
     private readonly Func<string, JsonObject, CancellationToken, Task<string>> _callToolAsync =
         callToolAsync ?? ((_, _, _) => Task.FromResult(string.Empty));

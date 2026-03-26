@@ -1,4 +1,3 @@
-using McpGateway;
 using Microsoft.Extensions.Configuration;
 
 namespace McpHost;

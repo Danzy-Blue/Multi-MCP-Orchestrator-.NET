@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json.Nodes;
-using McpGateway;
+using McpHost;
 
 namespace McpHost.Tests;
 

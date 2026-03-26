@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(appConfig);
         services.AddHttpClient();
         services.AddSingleton<IMcpConnectionFactory, McpConnectionFactory>();
+        services.AddSingleton<IMcpServerConnectionFactory, GatewayMcpConnectionFactory>();
         services.AddSingleton<ILlmService>(sp =>
         {
             var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();

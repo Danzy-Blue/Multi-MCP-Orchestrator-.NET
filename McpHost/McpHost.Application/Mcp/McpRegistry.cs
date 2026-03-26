@@ -1,4 +1,4 @@
-namespace McpGateway;
+namespace McpHost;
 
 public sealed class McpRegistry
 {

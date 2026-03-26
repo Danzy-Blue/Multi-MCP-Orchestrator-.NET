@@ -1,5 +1,5 @@
 using System.Text.Json.Nodes;
-using McpGateway;
+using McpHost;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpHost.Tests;

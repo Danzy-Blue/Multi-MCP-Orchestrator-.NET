@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
-using McpGateway;
 using Microsoft.Extensions.Logging;
 
 namespace McpHost;
@@ -8,7 +7,7 @@ namespace McpHost;
 public sealed class SessionManager(
     AppConfig appConfig,
     ILlmService llmService,
-    IMcpConnectionFactory mcpConnectionFactory,
+    IMcpServerConnectionFactory mcpConnectionFactory,
     ILogger<SessionManager> logger)
     : IAsyncDisposable
 {
@@ -152,11 +151,11 @@ internal sealed class ChatSession(
     string id,
     AppConfig appConfig,
     ILlmService llmService,
-    IMcpConnectionFactory mcpConnectionFactory,
+    IMcpServerConnectionFactory mcpConnectionFactory,
     ILogger logger) : IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly Dictionary<string, IMcpConnection> _serverConnections = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IMcpServerConnection> _serverConnections = new(StringComparer.Ordinal);
     private readonly McpRegistry _toolRegistry = new();
     private readonly McpPromptRegistry _promptRegistry = new();
     private readonly ILogger _logger = logger;
