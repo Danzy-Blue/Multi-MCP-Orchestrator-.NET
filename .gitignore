@@ -1,0 +1,54 @@
+# .NET build output
+**/bin/
+**/obj/
+**/out/
+**/TestResults/
+
+# User and IDE-specific files
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+.azure/
+.dotnet/
+.nuget/
+
+# Logs and diagnostics
+*.log
+*.tmp
+*.cache
+*.pid
+
+# Coverage
+coverage/
+coverage-*/
+*.coverage
+*.coveragexml
+
+# Node / Angular
+**/node_modules/
+**/dist/
+**/.angular/
+**/.angular/cache/
+**/.cache/
+**/.sass-cache/
+**/tmp/
+**/temp/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local environment files
+.env
+.env.local
+
+# Local verification artifacts
+host-test.log

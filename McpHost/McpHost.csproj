@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Configuration\**\*.cs" />
+    <Compile Remove="Contracts\**\*.cs" />
+    <Compile Remove="Infrastructure\**\*.cs" />
+    <Compile Remove="Llm\**\*.cs" />
+    <Compile Remove="McpHost.Application\**\*.cs" />
+    <Compile Remove="McpHost.Infrastructure\**\*.cs" />
+    <Compile Remove="McpHost.Tests\**\*.cs" />
+    <Compile Remove="Sessions\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="McpHost.Application\McpHost.Application.csproj" />
+    <ProjectReference Include="McpHost.Infrastructure\McpHost.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

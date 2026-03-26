@@ -1,0 +1,51 @@
+# VCS
+.git
+.gitignore
+.dockerignore
+
+# .NET build output
+**/bin
+**/obj
+**/out
+**/TestResults
+
+# Node / Angular build output
+**/node_modules
+**/dist
+**/.angular
+**/.angular/cache
+**/.cache
+**/.sass-cache
+**/coverage
+
+# IDE and local tooling
+.vs
+.vscode
+.azure
+.dotnet
+.nuget
+**/*.user
+**/*.rsuser
+**/*.suo
+
+# Logs and temp files
+**/*.log
+**/*.tmp
+**/*.cache
+**/tmp
+**/temp
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local environment files
+.env
+.env.local
+
+# Local verification artifacts
+host-test.log

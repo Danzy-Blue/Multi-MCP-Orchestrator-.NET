@@ -1,0 +1,521 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "6216074102163025914"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for all resources. Defaults to the current resource group location."
+      }
+    },
+    "environmentName": {
+      "type": "string",
+      "defaultValue": "mcpnet",
+      "metadata": {
+        "description": "Base name for the deployment environment."
+      }
+    },
+    "containerRegistryName": {
+      "type": "string",
+      "metadata": {
+        "description": "Unique Azure Container Registry name."
+      }
+    },
+    "deployContainerApps": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Deploy only shared infrastructure when false. Used by the deployment wrapper before images are built."
+      }
+    },
+    "imageTag": {
+      "type": "string",
+      "defaultValue": "latest",
+      "metadata": {
+        "description": "Image tag to deploy for all backend services."
+      }
+    },
+    "mcpHostImageRepository": {
+      "type": "string",
+      "defaultValue": "mcp-host",
+      "metadata": {
+        "description": "Container repository for McpHost."
+      }
+    },
+    "uwMcpImageRepository": {
+      "type": "string",
+      "defaultValue": "uw-mcp",
+      "metadata": {
+        "description": "Container repository for UwMcp."
+      }
+    },
+    "devOpsMcpImageRepository": {
+      "type": "string",
+      "defaultValue": "devops-mcp",
+      "metadata": {
+        "description": "Container repository for DevOpsMcp."
+      }
+    },
+    "myChatCorsOrigin": {
+      "type": "string",
+      "metadata": {
+        "description": "Public origin for the separately hosted MyChat UI."
+      }
+    },
+    "llmProvider": {
+      "type": "string",
+      "defaultValue": "openai",
+      "allowedValues": [
+        "openai",
+        "gemini"
+      ]
+    },
+    "llmModel": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "openAiModel": {
+      "type": "string",
+      "defaultValue": "gpt-4.1-mini"
+    },
+    "geminiModel": {
+      "type": "string",
+      "defaultValue": "gemini-2.5-flash"
+    },
+    "llmReasoningEffort": {
+      "type": "string",
+      "defaultValue": "medium"
+    },
+    "sessionTtlSecs": {
+      "type": "int",
+      "defaultValue": 3600
+    },
+    "systemInstruction": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "openAiApiKey": {
+      "type": "securestring",
+      "defaultValue": ""
+    },
+    "geminiApiKey": {
+      "type": "securestring",
+      "defaultValue": ""
+    },
+    "apimBaseUrl": {
+      "type": "string"
+    },
+    "submissionUrl": {
+      "type": "string"
+    },
+    "quoteUrl": {
+      "type": "string"
+    },
+    "apimSubscriptionKey": {
+      "type": "string",
+      "defaultValue": "Ocp-Apim-Subscription-Key"
+    },
+    "apimSubscriptionKeyValue": {
+      "type": "securestring"
+    },
+    "tfsBaseUrl": {
+      "type": "string"
+    },
+    "tfsPat": {
+      "type": "securestring"
+    },
+    "logAnalyticsWorkspaceName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-logs', parameters('environmentName'))]"
+    },
+    "containerAppEnvironmentName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-aca-env', parameters('environmentName'))]"
+    },
+    "mcpHostAppName": {
+      "type": "string",
+      "defaultValue": "mcp-host"
+    },
+    "uwMcpAppName": {
+      "type": "string",
+      "defaultValue": "uw-mcp"
+    },
+    "devOpsMcpAppName": {
+      "type": "string",
+      "defaultValue": "devops-mcp"
+    }
+  },
+  "variables": {
+    "uwMcpInternalUrl": "[format('http://{0}/mcp', parameters('uwMcpAppName'))]",
+    "devOpsMcpInternalUrl": "[format('http://{0}/mcp', parameters('devOpsMcpAppName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2022-10-01",
+      "name": "[parameters('logAnalyticsWorkspaceName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30,
+        "features": {
+          "disableLocalAuth": false,
+          "enableLogAccessUsingOnlyResourcePermissions": true
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-07-01",
+      "name": "[parameters('containerRegistryName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "adminUserEnabled": true,
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2024-03-01",
+      "name": "[parameters('containerAppEnvironmentName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2022-10-01').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2022-10-01').primarySharedKey]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployContainerApps')]",
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2024-03-01",
+      "name": "[parameters('uwMcpAppName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('containerAppEnvironmentName'))]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": false,
+            "targetPort": 8001,
+            "transport": "auto",
+            "allowInsecure": true
+          },
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer]",
+              "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').username]",
+              "passwordSecretRef": "acr-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "acr-password",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').passwords[0].value]"
+            },
+            {
+              "name": "apim-subscription-key-value",
+              "value": "[parameters('apimSubscriptionKeyValue')]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "uw-mcp",
+              "image": "[format('{0}/{1}:{2}', reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer, parameters('uwMcpImageRepository'), parameters('imageTag'))]",
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "8001"
+                },
+                {
+                  "name": "MCP_HTTP_HOST",
+                  "value": "0.0.0.0"
+                },
+                {
+                  "name": "MCP_HTTP_PATH",
+                  "value": "/mcp"
+                },
+                {
+                  "name": "APIM_BASE_URL",
+                  "value": "[parameters('apimBaseUrl')]"
+                },
+                {
+                  "name": "SUBMISSION_URL",
+                  "value": "[parameters('submissionUrl')]"
+                },
+                {
+                  "name": "QUOTE_URL",
+                  "value": "[parameters('quoteUrl')]"
+                },
+                {
+                  "name": "APIM_SUBSCRIPTION_KEY",
+                  "value": "[parameters('apimSubscriptionKey')]"
+                },
+                {
+                  "name": "APIM_SUBSCRIPTION_KEY_VALUE",
+                  "secretRef": "apim-subscription-key-value"
+                }
+              ],
+              "resources": {
+                "cpu": "[json('0.25')]",
+                "memory": "0.5Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 2
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+        "[resourceId('Microsoft.App/managedEnvironments', parameters('containerAppEnvironmentName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployContainerApps')]",
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2024-03-01",
+      "name": "[parameters('devOpsMcpAppName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('containerAppEnvironmentName'))]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": false,
+            "targetPort": 8002,
+            "transport": "auto",
+            "allowInsecure": true
+          },
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer]",
+              "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').username]",
+              "passwordSecretRef": "acr-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "acr-password",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').passwords[0].value]"
+            },
+            {
+              "name": "tfs-pat",
+              "value": "[parameters('tfsPat')]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "devops-mcp",
+              "image": "[format('{0}/{1}:{2}', reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer, parameters('devOpsMcpImageRepository'), parameters('imageTag'))]",
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "8002"
+                },
+                {
+                  "name": "MCP_HTTP_HOST",
+                  "value": "0.0.0.0"
+                },
+                {
+                  "name": "MCP_HTTP_PATH",
+                  "value": "/mcp"
+                },
+                {
+                  "name": "TFS_BASE_URL",
+                  "value": "[parameters('tfsBaseUrl')]"
+                },
+                {
+                  "name": "TFS_PAT",
+                  "secretRef": "tfs-pat"
+                }
+              ],
+              "resources": {
+                "cpu": "[json('0.25')]",
+                "memory": "0.5Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 2
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+        "[resourceId('Microsoft.App/managedEnvironments', parameters('containerAppEnvironmentName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployContainerApps')]",
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2024-03-01",
+      "name": "[parameters('mcpHostAppName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('containerAppEnvironmentName'))]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": true,
+            "targetPort": 8888,
+            "transport": "auto",
+            "allowInsecure": false
+          },
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer]",
+              "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').username]",
+              "passwordSecretRef": "acr-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "acr-password",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').passwords[0].value]"
+            },
+            {
+              "name": "openai-api-key",
+              "value": "[parameters('openAiApiKey')]"
+            },
+            {
+              "name": "gemini-api-key",
+              "value": "[parameters('geminiApiKey')]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "mcp-host",
+              "image": "[format('{0}/{1}:{2}', reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer, parameters('mcpHostImageRepository'), parameters('imageTag'))]",
+              "env": [
+                {
+                  "name": "API_PORT",
+                  "value": "8888"
+                },
+                {
+                  "name": "CORS_ORIGINS",
+                  "value": "[parameters('myChatCorsOrigin')]"
+                },
+                {
+                  "name": "LLM_PROVIDER",
+                  "value": "[parameters('llmProvider')]"
+                },
+                {
+                  "name": "LLM_MODEL",
+                  "value": "[parameters('llmModel')]"
+                },
+                {
+                  "name": "OPENAI_MODEL",
+                  "value": "[parameters('openAiModel')]"
+                },
+                {
+                  "name": "GEMINI_MODEL",
+                  "value": "[parameters('geminiModel')]"
+                },
+                {
+                  "name": "LLM_REASONING_EFFORT",
+                  "value": "[parameters('llmReasoningEffort')]"
+                },
+                {
+                  "name": "SESSION_TTL_SECS",
+                  "value": "[string(parameters('sessionTtlSecs'))]"
+                },
+                {
+                  "name": "SYSTEM_INSTRUCTION",
+                  "value": "[parameters('systemInstruction')]"
+                },
+                {
+                  "name": "UW_SERVER_URL",
+                  "value": "[variables('uwMcpInternalUrl')]"
+                },
+                {
+                  "name": "DEVOPS_SERVER_URL",
+                  "value": "[variables('devOpsMcpInternalUrl')]"
+                },
+                {
+                  "name": "OPENAI_API_KEY",
+                  "secretRef": "openai-api-key"
+                },
+                {
+                  "name": "GEMINI_API_KEY",
+                  "secretRef": "gemini-api-key"
+                }
+              ],
+              "resources": {
+                "cpu": "[json('0.5')]",
+                "memory": "1Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 1
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+        "[resourceId('Microsoft.App/managedEnvironments', parameters('containerAppEnvironmentName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "acrName": {
+      "type": "string",
+      "value": "[parameters('containerRegistryName')]"
+    },
+    "acrLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer]"
+    },
+    "mcpHostImageRepository": {
+      "type": "string",
+      "value": "[parameters('mcpHostImageRepository')]"
+    },
+    "uwMcpImageRepository": {
+      "type": "string",
+      "value": "[parameters('uwMcpImageRepository')]"
+    },
+    "devOpsMcpImageRepository": {
+      "type": "string",
+      "value": "[parameters('devOpsMcpImageRepository')]"
+    },
+    "containerAppEnvironmentDefaultDomain": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/managedEnvironments', parameters('containerAppEnvironmentName')), '2024-03-01').defaultDomain]"
+    },
+    "mcpHostUrl": {
+      "type": "string",
+      "value": "[if(parameters('deployContainerApps'), format('https://{0}', reference(resourceId('Microsoft.App/containerApps', parameters('mcpHostAppName')), '2024-03-01').configuration.ingress.fqdn), '')]"
+    }
+  }
+}

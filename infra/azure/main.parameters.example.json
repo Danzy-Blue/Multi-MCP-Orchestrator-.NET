@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "mcpnet-prod"
+    },
+    "containerRegistryName": {
+      "value": "mcpnetprodacr"
+    },
+    "myChatCorsOrigin": {
+      "value": "https://mychat.contoso.com"
+    },
+    "llmProvider": {
+      "value": "openai"
+    },
+    "llmModel": {
+      "value": ""
+    },
+    "openAiModel": {
+      "value": "gpt-4.1-mini"
+    },
+    "geminiModel": {
+      "value": "gemini-2.5-flash"
+    },
+    "llmReasoningEffort": {
+      "value": "medium"
+    },
+    "sessionTtlSecs": {
+      "value": 3600
+    },
+    "systemInstruction": {
+      "value": ""
+    },
+    "openAiApiKey": {
+      "value": ""
+    },
+    "geminiApiKey": {
+      "value": ""
+    },
+    "apimBaseUrl": {
+      "value": "https://apim.contoso.com"
+    },
+    "submissionUrl": {
+      "value": "https://apim.contoso.com/submissions"
+    },
+    "quoteUrl": {
+      "value": "https://apim.contoso.com/quotes"
+    },
+    "apimSubscriptionKey": {
+      "value": "Ocp-Apim-Subscription-Key"
+    },
+    "apimSubscriptionKeyValue": {
+      "value": ""
+    },
+    "tfsBaseUrl": {
+      "value": "https://dev.azure.com/contoso/project"
+    },
+    "tfsPat": {
+      "value": ""
+    }
+  }
+}

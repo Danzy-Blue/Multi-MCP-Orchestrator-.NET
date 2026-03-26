@@ -1,0 +1,56 @@
+services:
+  uw-mcp:
+    build:
+      context: .
+      dockerfile: Servers/UwMcp/Dockerfile
+    environment:
+      PORT: 8001
+      MCP_HTTP_HOST: 0.0.0.0
+      MCP_HTTP_PATH: /mcp
+      SUBMISSION_URL: ${SUBMISSION_URL:-}
+      QUOTE_URL: ${QUOTE_URL:-}
+      APIM_BASE_URL: ${APIM_BASE_URL:-}
+      APIM_SUBSCRIPTION_KEY: ${APIM_SUBSCRIPTION_KEY:-Ocp-Apim-Subscription-Key}
+      APIM_SUBSCRIPTION_KEY_VALUE: ${APIM_SUBSCRIPTION_KEY_VALUE:-}
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
+  devops-mcp:
+    build:
+      context: .
+      dockerfile: Servers/DevOpsMcp/Dockerfile
+    environment:
+      PORT: 8002
+      MCP_HTTP_HOST: 0.0.0.0
+      MCP_HTTP_PATH: /mcp
+      TFS_BASE_URL: ${TFS_BASE_URL:-}
+      TFS_PAT: ${TFS_PAT:-}
+    ports:
+      - "8002:8002"
+    restart: unless-stopped
+
+  mcp-host:
+    build:
+      context: .
+      dockerfile: McpHost/Dockerfile
+    depends_on:
+      - uw-mcp
+      - devops-mcp
+    environment:
+      API_PORT: 8888
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      LLM_MODEL: ${LLM_MODEL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      LLM_REASONING_EFFORT: ${LLM_REASONING_EFFORT:-medium}
+      SESSION_TTL_SECS: ${SESSION_TTL_SECS:-3600}
+      SYSTEM_INSTRUCTION: ${SYSTEM_INSTRUCTION:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      UW_SERVER_URL: http://uw-mcp:8001/mcp
+      DEVOPS_SERVER_URL: http://devops-mcp:8002/mcp
+    ports:
+      - "8888:8888"
+    restart: unless-stopped

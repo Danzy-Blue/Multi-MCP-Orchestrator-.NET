@@ -1,0 +1,32 @@
+<div class="chat-wrapper">
+  <div class="chat-container">
+
+    <!-- Header -->
+    <div class="chat-header">
+      AI Chat Assistant
+    </div>
+
+    <!-- Chat Body -->
+    <div class="chat-body">
+      <div *ngFor="let message of messages" class="chat-message" [ngClass]="message.sender">
+        <div class="bubble">
+          {{ message.text }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="chat-input-bar">
+      <textarea
+        class="input-box"
+        [(ngModel)]="userPrompt"
+        (keydown.enter)="onTextareaEnter($event)"
+        placeholder="Type your message..."
+        rows="1"
+      ></textarea>
+
+      <button class="send-button" (click)="sendPrompt()">▶</button>
+    </div>
+
+  </div>
+</div>
