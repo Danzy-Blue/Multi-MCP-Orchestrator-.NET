@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\Logging\**\*.cs" Link="Shared\Logging\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="McpHost.Application\McpHost.Application.csproj" />
     <ProjectReference Include="McpHost.Infrastructure\McpHost.Infrastructure.csproj" />
   </ItemGroup>

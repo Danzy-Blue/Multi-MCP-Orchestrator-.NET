@@ -1,8 +1,8 @@
 using McpHost;
+using Shared.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Logging.ClearProviders();
-builder.Logging.AddJsonConsole();
+var loggingOptions = builder.AddConfiguredLogging("mcp-host.log");
 
 var appConfig = builder.Configuration.LoadAppConfig();
 builder.WebHost.UseUrls($"http://0.0.0.0:{appConfig.ApiPort}");
@@ -24,6 +24,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 app.UseCors();
+
+if (loggingOptions.AppInsights.Enabled)
+{
+    app.Logger.LogWarning("Application Insights logging is configured but not enabled in this build.");
+}
 
 app.Use(async (context, next) =>
 {

@@ -11,6 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\Shared\Logging\**\*.cs" Link="Shared\Logging\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="DevOpsMcp.Application\**\*.cs" />
     <Compile Remove="DevOpsMcp.Tests\**\*.cs" />
   </ItemGroup>

@@ -61,6 +61,8 @@ The .NET MCP servers expose streamable HTTP MCP endpoints and health endpoints:
 
 For existing deployment scripts, the host still supports the legacy flat environment variables below as overrides. At least one `AppConfig:ServerConfigs` entry must be configured after overrides are applied.
 
+All three web apps also support an `Observability` section for logging sinks. File logging is enabled by default and writes JSON-lines log files to the configured relative path under the app content root. Application Insights settings are present as configuration placeholders but are not enabled yet.
+
 ## Project Structure
 
 - `McpHost`: API host
@@ -90,12 +92,20 @@ For existing deployment scripts, the host still supports the legacy flat environ
 - `UW_SERVER_URL`
 - `DEVOPS_SERVER_URL`
 - `SYSTEM_INSTRUCTION`
+- `HOST_FILE_LOG_ENABLED`
+- `HOST_FILE_LOG_PATH`
+- `HOST_APPINSIGHTS_ENABLED`
+- `HOST_APPINSIGHTS_CONNECTION_STRING`
 
 ### UW MCP
 
 - `PORT`
 - `MCP_HTTP_HOST`
 - `MCP_HTTP_PATH`
+- `UW_FILE_LOG_ENABLED`
+- `UW_FILE_LOG_PATH`
+- `UW_APPINSIGHTS_ENABLED`
+- `UW_APPINSIGHTS_CONNECTION_STRING`
 - `SUBMISSION_URL`
 - `QUOTE_URL`
 - `APIM_BASE_URL`
@@ -107,6 +117,10 @@ For existing deployment scripts, the host still supports the legacy flat environ
 - `PORT`
 - `MCP_HTTP_HOST`
 - `MCP_HTTP_PATH`
+- `DEVOPS_FILE_LOG_ENABLED`
+- `DEVOPS_FILE_LOG_PATH`
+- `DEVOPS_APPINSIGHTS_ENABLED`
+- `DEVOPS_APPINSIGHTS_CONNECTION_STRING`
 - `TFS_BASE_URL`
 - `TFS_PAT`
 
@@ -168,4 +182,5 @@ Default ports:
 - The .NET implementation now uses the official MCP C# SDK end-to-end instead of a custom shared protocol library.
 - The .NET servers currently focus on the streamable HTTP MCP path used by the existing Docker and host setup.
 - `McpHost` now tolerates MCP servers that do not expose `tools/list` and/or `prompts/list`; missing capabilities are treated as empty tool or prompt catalogs instead of failing session startup.
+- File logging is enabled by default for `McpHost`, `UwMcp`, and `DevOpsMcp` with default relative paths `mcp-host.log`, `uw-mcp.log`, and `devops-mcp.log`.
 - The Angular UI was kept separate from the container deployment and only updated to support a runtime-configured backend URL.

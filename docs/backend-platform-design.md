@@ -125,6 +125,7 @@ flowchart LR
 
 - Public entrypoint.
 - Reads defaults from `AppConfig` in `McpHost/appsettings.json`.
+- Reads sink settings from the `Observability` section and currently enables file logging.
 - Supports legacy flat environment variable overrides for deployment.
 - Must be configured with the private MCP URLs for `UwMcp` and `DevOpsMcp`.
 - Must set `CORS_ORIGINS` to the `MyChat` origin used in each environment.
@@ -132,11 +133,13 @@ flowchart LR
 ### UwMcp
 
 - Uses `PORT`, `MCP_HTTP_HOST`, and `MCP_HTTP_PATH` for container binding.
+- Uses the `Observability` section for file logging settings.
 - Requires UW/APIM endpoint settings and APIM subscription credentials.
 
 ### DevOpsMcp
 
 - Uses `PORT`, `MCP_HTTP_HOST`, and `MCP_HTTP_PATH` for container binding.
+- Uses the `Observability` section for file logging settings.
 - Requires `TFS_BASE_URL`.
 - Accepts PAT through `TFS_PAT` or request header `X-TFS-PAT`.
 
@@ -177,6 +180,7 @@ The two MCP servers are better candidates for horizontal scaling because they do
 - Both MCP servers expose `/`, `/health`, and the configured MCP path, which defaults to `/mcp`.
 - The public health probe should target `McpHost /health`.
 - MCP server health should be monitored internally.
+- File logging is enabled by default. Application Insights settings exist as configuration placeholders but are not enabled yet.
 
 ## Failure Modes
 
