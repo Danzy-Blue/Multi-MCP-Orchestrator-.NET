@@ -37,9 +37,7 @@ public sealed class UwToolsTests
             }),
             BuildAccessor("corr-789", cancellationSource.Token),
             NullLogger<UwToolService>.Instance);
-        var tools = new UwTools(service);
-
-        var result = await tools.GetSubmission("RSK123");
+        var result = await service.GetSubmissionAsync("RSK123");
 
         Assert.Contains("\"contract\": \"RSK123\"", result);
         Assert.NotNull(handler.LastRequest);
@@ -61,9 +59,7 @@ public sealed class UwToolsTests
             }),
             BuildAccessor("corr-789", CancellationToken.None),
             NullLogger<UwToolService>.Instance);
-        var tools = new UwTools(service);
-
-        var result = await tools.GetSubmission("RSK123");
+        var result = await service.GetSubmissionAsync("RSK123");
 
         Assert.Contains("API call failed", result);
         Assert.Contains("APIM_BASE_URL is not configured.", result);

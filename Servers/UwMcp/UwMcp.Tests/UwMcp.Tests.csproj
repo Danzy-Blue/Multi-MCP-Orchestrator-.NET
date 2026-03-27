@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="..\UwMcp.csproj" />
+    <ProjectReference Include="..\UwMcp.Application\UwMcp.Application.csproj" />
   </ItemGroup>
 
 </Project>

@@ -22,7 +22,12 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="..\McpHost.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\McpHost.Application\**\*.cs" Exclude="..\McpHost.Application\obj\**\*.cs" Link="App\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\McpHost.Infrastructure\Correlation\**\*.cs" Link="Infrastructure\Correlation\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\McpHost.Infrastructure\Llm\LlmServices.cs" Link="Infrastructure\Llm\LlmServices.cs" />
   </ItemGroup>
 
 </Project>

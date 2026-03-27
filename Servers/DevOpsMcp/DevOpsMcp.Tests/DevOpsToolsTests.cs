@@ -41,12 +41,11 @@ public sealed class DevOpsToolsTests
             BuildConfiguration(new Dictionary<string, string?>
             {
                 ["TFS_BASE_URL"] = "https://tfs.example",
+                ["TFS_TIMEOUT_SECONDS"] = "246",
             }),
             BuildAccessor("pat-123", "corr-456"),
             NullLogger<DevOpsWorkItemService>.Instance);
-        var tools = new DevOpsTools(service);
-
-        var result = await tools.FetchWorkItem(123);
+        var result = await service.FetchWorkItemAsync(123);
 
         Assert.Contains("## Bug #123: Test work item", result);
         Assert.Contains("Investigate issue", result);
@@ -56,6 +55,7 @@ public sealed class DevOpsToolsTests
             $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes(":pat-123"))}",
             handler.LastRequest!.Headers.GetValues("Authorization").Single());
         Assert.Equal("corr-456", handler.LastRequest.Headers.GetValues("X-Correlation-ID").Single());
+        Assert.Equal(TimeSpan.FromSeconds(246), client.Timeout);
     }
 
     [Fact]
@@ -70,9 +70,7 @@ public sealed class DevOpsToolsTests
             }),
             new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
             NullLogger<DevOpsWorkItemService>.Instance);
-        var tools = new DevOpsTools(service);
-
-        var result = await tools.FetchWorkItem(123);
+        var result = await service.FetchWorkItemAsync(123);
 
         Assert.Contains("Missing TFS PAT", result);
     }

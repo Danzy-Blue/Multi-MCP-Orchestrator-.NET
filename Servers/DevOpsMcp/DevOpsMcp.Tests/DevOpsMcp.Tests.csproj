@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="..\DevOpsMcp.csproj" />
+    <ProjectReference Include="..\DevOpsMcp.Application\DevOpsMcp.Application.csproj" />
   </ItemGroup>
 
 </Project>

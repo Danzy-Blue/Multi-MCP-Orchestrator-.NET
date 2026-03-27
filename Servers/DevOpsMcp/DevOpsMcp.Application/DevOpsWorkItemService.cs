@@ -16,6 +16,7 @@ public sealed class DevOpsWorkItemService(
     ILogger<DevOpsWorkItemService> logger)
 {
     private const string CorrelationHeaderName = "X-Correlation-ID";
+    private const int DefaultRequestTimeoutSeconds = 135;
 
     public async Task<string> FetchWorkItemAsync(int work_item_id)
     {
@@ -160,6 +161,8 @@ public sealed class DevOpsWorkItemService(
     private CancellationToken RequestAborted => HttpContext.RequestAborted;
 
     private string TfsBaseUrl => (configuration["TFS_BASE_URL"] ?? string.Empty).TrimEnd('/');
+    private TimeSpan RequestTimeout => TimeSpan.FromSeconds(
+        Math.Max(configuration.GetValue<int?>("TFS_TIMEOUT_SECONDS") ?? DefaultRequestTimeoutSeconds, 1));
 
     private Dictionary<string, string> ResolveAuthHeader()
     {
@@ -218,7 +221,7 @@ public sealed class DevOpsWorkItemService(
         CancellationToken cancellationToken)
     {
         var client = httpClientFactory.CreateClient("devops-api");
-        client.Timeout = TimeSpan.FromSeconds(35);
+        client.Timeout = RequestTimeout;
         using var request = new HttpRequestMessage(method, url);
         foreach (var header in headers)
         {
@@ -303,7 +306,7 @@ public sealed class DevOpsWorkItemService(
 
     private static string EscapeWiql(string value) => value.Replace("'", "''", StringComparison.Ordinal);
 
-    private static string HandleApiError(Exception exception, int itemId)
+    private string HandleApiError(Exception exception, int itemId)
     {
         if (exception is HttpRequestException { StatusCode: HttpStatusCode.NotFound })
         {
@@ -327,7 +330,7 @@ public sealed class DevOpsWorkItemService(
 
         if (exception is TaskCanceledException)
         {
-            return "Request timed out after 35s.";
+            return $"Request timed out after {(int)RequestTimeout.TotalSeconds}s.";
         }
 
         return $"Unexpected error: {exception.GetType().Name}: {exception.Message}";

@@ -307,17 +307,17 @@ public sealed class GeminiLlmService(string apiKey, IHttpClientFactory httpClien
         var url = $"https://generativelanguage.googleapis.com/v1beta/models/{conversation.Model}:generateContent?key={apiKey}";
         var payload = new JsonObject
         {
-            ["contents"] = conversation.Contents,
+            ["contents"] = CloneNode(conversation.Contents),
         };
 
         if (conversation.SystemInstruction is not null)
         {
-            payload["systemInstruction"] = conversation.SystemInstruction;
+            payload["systemInstruction"] = CloneNode(conversation.SystemInstruction);
         }
 
         if (conversation.Tools.Count > 0)
         {
-            payload["tools"] = conversation.Tools;
+            payload["tools"] = CloneNode(conversation.Tools);
         }
 
         using var response = await client.PostAsync(
@@ -336,7 +336,7 @@ public sealed class GeminiLlmService(string apiKey, IHttpClientFactory httpClien
         var content = response["candidates"]?.AsArray().FirstOrDefault()?["content"] as JsonObject;
         if (content is not null)
         {
-            conversation.Contents.Add(content);
+            conversation.Contents.Add(CloneNode(content));
         }
     }
 
@@ -363,8 +363,8 @@ public sealed class GeminiLlmService(string apiKey, IHttpClientFactory httpClien
     {
         var mapped = new JsonObject
         {
-            ["type"] = MapType(schema["type"]?.GetValue<string>() ?? "object"),
-            ["description"] = schema["description"]?.GetValue<string>() ?? string.Empty,
+            ["type"] = MapType(GetSchemaType(schema)),
+            ["description"] = GetStringValue(schema["description"]) ?? string.Empty,
         };
 
         if (schema["properties"] is JsonObject properties)
@@ -372,9 +372,7 @@ public sealed class GeminiLlmService(string apiKey, IHttpClientFactory httpClien
             var mappedProperties = new JsonObject();
             foreach (var property in properties)
             {
-                mappedProperties[property.Key] = property.Value is JsonObject child
-                    ? MapSchema(child)
-                    : new JsonObject();
+                mappedProperties[property.Key] = MapSchemaNode(property.Value);
             }
 
             mapped["properties"] = mappedProperties;
@@ -382,21 +380,88 @@ public sealed class GeminiLlmService(string apiKey, IHttpClientFactory httpClien
 
         if (schema["required"] is JsonArray required)
         {
-            mapped["required"] = JsonNode.Parse(required.ToJsonString());
+            mapped["required"] = CloneNode(required);
         }
 
         if (schema["items"] is JsonObject items)
         {
             mapped["items"] = MapSchema(items);
         }
+        else if (schema["items"] is JsonArray tupleItems)
+        {
+            var firstSchema = tupleItems.OfType<JsonObject>().FirstOrDefault();
+            if (firstSchema is not null)
+            {
+                mapped["items"] = MapSchema(firstSchema);
+            }
+        }
 
         if (schema["enum"] is JsonArray enumValues)
         {
-            mapped["enum"] = JsonNode.Parse(enumValues.ToJsonString());
+            mapped["enum"] = CloneNode(enumValues);
         }
 
         return mapped;
     }
+
+    private static JsonObject MapSchemaNode(JsonNode? node) =>
+        node is JsonObject child
+            ? MapSchema(child)
+            : new JsonObject
+            {
+                ["type"] = "OBJECT",
+                ["description"] = string.Empty,
+            };
+
+    private static string GetSchemaType(JsonObject schema)
+    {
+        var directType = GetStringValue(schema["type"]);
+        if (!string.IsNullOrWhiteSpace(directType))
+        {
+            return directType;
+        }
+
+        if (schema["type"] is JsonArray typeOptions)
+        {
+            var preferredType = typeOptions
+                .Select(GetStringValue)
+                .FirstOrDefault(static value =>
+                    !string.IsNullOrWhiteSpace(value)
+                    && !string.Equals(value, "null", StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(preferredType))
+            {
+                return preferredType;
+            }
+        }
+
+        foreach (var keyword in new[] { "anyOf", "oneOf", "allOf" })
+        {
+            if (schema[keyword] is not JsonArray alternatives)
+            {
+                continue;
+            }
+
+            foreach (var alternative in alternatives.OfType<JsonObject>())
+            {
+                var alternativeType = GetSchemaType(alternative);
+                if (!string.Equals(alternativeType, "object", StringComparison.OrdinalIgnoreCase))
+                {
+                    return alternativeType;
+                }
+            }
+        }
+
+        return "object";
+    }
+
+    private static string? GetStringValue(JsonNode? node) =>
+        node is JsonValue value && value.TryGetValue<string>(out var text)
+            ? text
+            : null;
+
+    private static JsonNode? CloneNode(JsonNode? node) =>
+        node is null ? null : JsonNode.Parse(node.ToJsonString());
 
     private static string MapType(string jsonType) => jsonType.ToLowerInvariant() switch
     {

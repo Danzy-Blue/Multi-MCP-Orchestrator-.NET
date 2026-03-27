@@ -96,7 +96,7 @@ public sealed class SessionManagerTests
         Assert.Equal("no-prompts-session", prompts.SessionId);
         Assert.Empty(prompts.Prompts);
         Assert.Equal("no-prompts-session", chat.SessionId);
-        Assert.Equal("hello", chat.Response);
+        Assert.Equal("hello", chat.Reply);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class SessionManagerTests
 
         Assert.Equal(0, llmService.LastCreateChatToolCount);
         Assert.Equal("no-tools-session", result.SessionId);
-        Assert.Equal("hello", result.Response);
+        Assert.Equal("hello", result.Reply);
         Assert.Empty(result.ToolCalls);
     }
 
