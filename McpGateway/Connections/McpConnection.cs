@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
@@ -25,7 +26,7 @@ public sealed class McpConnection(ServerConfig config, IHttpClientFactory httpCl
         // Discovery runs once per connection so later tool/prompt calls can route locally.
         _logger.LogInformation("Connecting to MCP server {ServerAlias} at {ServerUrl}", _config.Alias, _config.Url);
         var httpClient = _httpClientFactory.CreateClient($"mcp-{_config.Alias}");
-        httpClient.Timeout = TimeSpan.FromSeconds(35);
+        httpClient.Timeout = TimeSpan.FromSeconds(135);
 
         var transport = new HttpClientTransport(
             new HttpClientTransportOptions
@@ -36,8 +37,8 @@ public sealed class McpConnection(ServerConfig config, IHttpClientFactory httpCl
             },
             httpClient);
         _client = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken);
-        var tools = await _client.ListToolsAsync(cancellationToken: cancellationToken);
-        var prompts = await _client.ListPromptsAsync(cancellationToken: cancellationToken);
+        var tools = await TryListToolsAsync(cancellationToken);
+        var prompts = await TryListPromptsAsync(cancellationToken);
         _toolMap = tools.ToDictionary(tool => tool.Name, StringComparer.Ordinal);
         _promptMap = prompts.ToDictionary(prompt => prompt.Name, StringComparer.Ordinal);
 
@@ -156,6 +157,38 @@ public sealed class McpConnection(ServerConfig config, IHttpClientFactory httpCl
             result.Messages.Select(FormatPromptMessage).ToArray());
     }
 
+    private async Task<IList<McpClientTool>> TryListToolsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _client!.ListToolsAsync(cancellationToken: cancellationToken);
+        }
+        catch (McpProtocolException ex) when (IsCapabilityUnavailable(ex, "tools/list"))
+        {
+            _logger.LogInformation(
+                ex,
+                "MCP server {ServerAlias} does not expose tools/list. Continuing without tool discovery",
+                _config.Alias);
+            return [];
+        }
+    }
+
+    private async Task<IList<McpClientPrompt>> TryListPromptsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _client!.ListPromptsAsync(cancellationToken: cancellationToken);
+        }
+        catch (McpProtocolException ex) when (IsCapabilityUnavailable(ex, "prompts/list"))
+        {
+            _logger.LogInformation(
+                ex,
+                "MCP server {ServerAlias} does not expose prompts/list. Continuing without prompt discovery",
+                _config.Alias);
+            return [];
+        }
+    }
+
     private static Dictionary<string, object?> DeserializeArguments(JsonObject arguments) =>
         JsonSerializer.Deserialize<Dictionary<string, object?>>(
             arguments.ToJsonString(),
@@ -193,4 +226,8 @@ public sealed class McpConnection(ServerConfig config, IHttpClientFactory httpCl
             AudioContentBlock => "[audio omitted]",
             _ => content.ToString(),
         };
+
+    private static bool IsCapabilityUnavailable(McpProtocolException exception, string methodName) =>
+        exception.ErrorCode == McpErrorCode.MethodNotFound
+        || exception.Message.Contains(methodName, StringComparison.Ordinal);
 }

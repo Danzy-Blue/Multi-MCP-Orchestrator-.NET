@@ -75,6 +75,56 @@ public sealed class SessionManagerTests
     }
 
     [Fact]
+    public async Task ListPromptsAsync_WhenServerHasNoPromptSupport_ReturnsEmptyCatalogAndChatStillWorks()
+    {
+        var appConfig = new AppConfig
+        {
+            LlmProvider = "gemini",
+            LlmModel = "gemini-test",
+            GeminiApiKey = "api-key",
+            ServerConfigs = [new ServerConfig("devops", "https://devops.example/mcp")],
+        };
+        await using var sessionManager = new SessionManager(
+            appConfig,
+            new StubLlmService(),
+            new FakeMcpConnectionFactory(_ => new FakeMcpConnection()),
+            NullLogger<SessionManager>.Instance);
+
+        var prompts = await sessionManager.ListPromptsAsync("no-prompts-session", CancellationToken.None);
+        var chat = await sessionManager.HandleChatAsync("no-prompts-session", "hello", CancellationToken.None);
+
+        Assert.Equal("no-prompts-session", prompts.SessionId);
+        Assert.Empty(prompts.Prompts);
+        Assert.Equal("no-prompts-session", chat.SessionId);
+        Assert.Equal("hello", chat.Response);
+    }
+
+    [Fact]
+    public async Task HandleChatAsync_WhenNoToolsAreDiscovered_StillInitializesChat()
+    {
+        var appConfig = new AppConfig
+        {
+            LlmProvider = "gemini",
+            LlmModel = "gemini-test",
+            GeminiApiKey = "api-key",
+            ServerConfigs = [new ServerConfig("empty", "https://empty.example/mcp")],
+        };
+        var llmService = new ToolCapturingLlmService();
+        await using var sessionManager = new SessionManager(
+            appConfig,
+            llmService,
+            new FakeMcpConnectionFactory(_ => new FakeMcpConnection()),
+            NullLogger<SessionManager>.Instance);
+
+        var result = await sessionManager.HandleChatAsync("no-tools-session", "hello", CancellationToken.None);
+
+        Assert.Equal(0, llmService.LastCreateChatToolCount);
+        Assert.Equal("no-tools-session", result.SessionId);
+        Assert.Equal("hello", result.Response);
+        Assert.Empty(result.ToolCalls);
+    }
+
+    [Fact]
     public async Task RenderPromptAsync_ReturnsRenderedPromptMessages()
     {
         var appConfig = new AppConfig

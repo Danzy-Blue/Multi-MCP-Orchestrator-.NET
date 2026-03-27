@@ -85,6 +85,33 @@ internal sealed class StubLlmService : ILlmService
     public string ExtractTextResponse(JsonObject response) => response["reply"]?.GetValue<string>() ?? string.Empty;
 }
 
+internal sealed class ToolCapturingLlmService : ILlmService
+{
+    public int LastCreateChatToolCount { get; private set; } = -1;
+
+    public object CreateChat(string model, IEnumerable<RegisteredTool> tools, string? systemInstruction = null)
+    {
+        LastCreateChatToolCount = tools.Count();
+        return new object();
+    }
+
+    public Task<JsonObject> SendUserMessageAsync(object chat, string message, CancellationToken cancellationToken) =>
+        Task.FromResult(new JsonObject
+        {
+            ["reply"] = message,
+        });
+
+    public Task<JsonObject> SendToolOutputsAsync(
+        object chat,
+        IReadOnlyList<LlmToolResult> toolResults,
+        CancellationToken cancellationToken) =>
+        Task.FromResult(new JsonObject());
+
+    public IReadOnlyList<LlmToolCall> ExtractToolCalls(JsonObject response) => [];
+
+    public string ExtractTextResponse(JsonObject response) => response["reply"]?.GetValue<string>() ?? string.Empty;
+}
+
 internal sealed class FakeMcpConnectionFactory(Func<ServerConfig, IMcpServerConnection> factory) : IMcpServerConnectionFactory
 {
     private readonly Func<ServerConfig, IMcpServerConnection> _factory = factory;

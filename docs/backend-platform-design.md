@@ -23,9 +23,9 @@ This document captures the runtime architecture and deployment design for the .N
 | Component | Responsibility | Inbound traffic | Outbound traffic |
 |-----------|----------------|-----------------|------------------|
 | `MyChat` | Browser UI for chat and session operations | End users | `McpHost` HTTP API |
-| `McpHost` | Session management, prompt rendering, tool orchestration, LLM integration | `MyChat` and API clients | OpenAI/Gemini, `UwMcp`, `DevOpsMcp` |
-| `UwMcp` | Underwriting MCP tool server | `McpHost` via MCP over HTTP | UW/APIM APIs |
-| `DevOpsMcp` | Azure DevOps/TFS MCP tool server | `McpHost` via MCP over HTTP | Azure DevOps/TFS APIs |
+| `McpHost` | Session management, prompt rendering, tool orchestration, LLM integration, and MCP capability discovery | `MyChat` and API clients | OpenAI/Gemini, `UwMcp`, `DevOpsMcp` |
+| `UwMcp` | Underwriting MCP server exposing health, API info, and MCP transport endpoints | `McpHost` via MCP over HTTP | UW/APIM APIs |
+| `DevOpsMcp` | Azure DevOps/TFS MCP server exposing health, API info, and MCP transport endpoints | `McpHost` via MCP over HTTP | Azure DevOps/TFS APIs |
 
 ## Project Layout
 
@@ -85,8 +85,8 @@ sequenceDiagram
 
     UI->>Host: POST /chat { session_id?, message }
     Host->>Session: HandleChatAsync
-    Session->>LLM: Send user message with discovered MCP tools
-    LLM-->>Session: Response with tool call(s)
+    Session->>LLM: Send user message with discovered MCP tools, if any
+    LLM-->>Session: Response with zero or more tool call(s)
 
     alt Underwriting tool selected
         Session->>Uw: MCP CallToolAsync
@@ -173,14 +173,15 @@ The two MCP servers are better candidates for horizontal scaling because they do
 
 ## Operations and Health
 
-- `McpHost` exposes `/health`, `/sessions`, `/chat`, `/prompts`, and `/prompts/render`.
-- Both MCP servers expose `/health` and `/mcp`.
+- `McpHost` exposes `/`, `/health`, `/sessions`, `/chat`, `/chat/close`, `/prompts`, and `/prompts/render`.
+- Both MCP servers expose `/`, `/health`, and the configured MCP path, which defaults to `/mcp`.
 - The public health probe should target `McpHost /health`.
 - MCP server health should be monitored internally.
 
 ## Failure Modes
 
 - If `UwMcp` or `DevOpsMcp` is unavailable, tool execution fails for the affected capability but the host remains online.
+- If an MCP server does not implement `tools/list` or `prompts/list`, `McpHost` now treats that capability as unavailable and continues with an empty catalog.
 - If the selected LLM provider is unavailable, chat requests fail even when the MCP services are healthy.
 - If `MyChat` points at the wrong backend URL or the host CORS list is incomplete, browser calls fail before reaching the host.
 

@@ -21,6 +21,9 @@ The existing Python implementation was not modified. The Angular chat UI only re
 
 The .NET host preserves the current HTTP API used by the Angular app:
 
+- `GET /`
+- `GET /prompts`
+- `POST /prompts/render`
 - `POST /chat`
 - `GET /sessions`
 - `POST /chat/close`
@@ -28,6 +31,7 @@ The .NET host preserves the current HTTP API used by the Angular app:
 
 The .NET MCP servers expose streamable HTTP MCP endpoints and health endpoints:
 
+- `GET /`
 - `GET /health`
 - `POST /mcp`
 - `DELETE /mcp`
@@ -40,17 +44,22 @@ The .NET MCP servers expose streamable HTTP MCP endpoints and health endpoints:
 "AppConfig": {
   "LlmProvider": "gemini",
   "LlmModel": "gemini-2.5-flash",
+  "LlmReasoningEffort": null,
+  "GeminiApiKey": "",
+  "OpenAiApiKey": "",
   "ApiPort": 8888,
   "SessionTtlSeconds": 3600,
   "CorsOrigins": [ "*" ],
   "ServerConfigs": [
     { "Alias": "uw", "Url": "http://localhost:8001/mcp" },
     { "Alias": "devops", "Url": "http://localhost:8002/mcp" }
-  ]
+  ],
+  "AppTitle": "MCP Chat API",
+  "SystemInstruction": null
 }
 ```
 
-For existing deployment scripts, the host still supports the legacy flat environment variables below as overrides.
+For existing deployment scripts, the host still supports the legacy flat environment variables below as overrides. At least one `AppConfig:ServerConfigs` entry must be configured after overrides are applied.
 
 ## Project Structure
 
@@ -158,4 +167,5 @@ Default ports:
 - The Python stack remains the current reference implementation.
 - The .NET implementation now uses the official MCP C# SDK end-to-end instead of a custom shared protocol library.
 - The .NET servers currently focus on the streamable HTTP MCP path used by the existing Docker and host setup.
+- `McpHost` now tolerates MCP servers that do not expose `tools/list` and/or `prompts/list`; missing capabilities are treated as empty tool or prompt catalogs instead of failing session startup.
 - The Angular UI was kept separate from the container deployment and only updated to support a runtime-configured backend URL.
