@@ -1,0 +1,111 @@
+name: Build and Deploy MCP Apps
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  ACR_NAME: acrmcpdev01
+  ACR_LOGIN_SERVER: acrmcpdev01.azurecr.io
+  RESOURCE_GROUP: rg-mcp-dev
+
+jobs:
+
+  deploy-uw:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR login
+        run: az acr login --name $ACR_NAME
+
+      - name: Build uw-mcp
+        run: |
+          docker build -f Servers/UwMcp/Dockerfile \
+          -t $ACR_LOGIN_SERVER/mcp/uw-mcp:${{ github.sha }} .
+
+      - name: Push uw-mcp
+        run: |
+          docker push $ACR_LOGIN_SERVER/mcp/uw-mcp:${{ github.sha }}
+
+      - name: Deploy uw-mcp
+        run: |
+          az containerapp update \
+          --name ca-mcp-uw-dev \
+          --resource-group $RESOURCE_GROUP \
+          --image $ACR_LOGIN_SERVER/mcp/uw-mcp:${{ github.sha }}
+
+  deploy-devops:
+    runs-on: ubuntu-latest
+    needs: deploy-uw
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR login
+        run: az acr login --name $ACR_NAME
+
+      - name: Build devops-mcp
+        run: |
+          docker build -f Servers/DevOpsMcp/Dockerfile \
+          -t $ACR_LOGIN_SERVER/mcp/devops-mcp:${{ github.sha }} .
+
+      - name: Push devops-mcp
+        run: |
+          docker push $ACR_LOGIN_SERVER/mcp/devops-mcp:${{ github.sha }}
+
+      - name: Deploy devops-mcp
+        run: |
+          az containerapp update \
+          --name ca-mcp-devops-dev \
+          --resource-group $RESOURCE_GROUP \
+          --image $ACR_LOGIN_SERVER/mcp/devops-mcp:${{ github.sha }}
+
+  deploy-host:
+    runs-on: ubuntu-latest
+    needs: [deploy-uw, deploy-devops]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR login
+        run: az acr login --name $ACR_NAME
+
+      - name: Build mcp-host
+        run: |
+          docker build -f McpHost/Dockerfile \
+          -t $ACR_LOGIN_SERVER/mcp/mcp-host:${{ github.sha }} .
+
+      - name: Push mcp-host
+        run: |
+          docker push $ACR_LOGIN_SERVER/mcp/mcp-host:${{ github.sha }}
+
+      - name: Deploy mcp-host
+        run: |
+          az containerapp update \
+          --name ca-mcp-host-dev \
+          --resource-group $RESOURCE_GROUP \
+          --image $ACR_LOGIN_SERVER/mcp/mcp-host:${{ github.sha }}
